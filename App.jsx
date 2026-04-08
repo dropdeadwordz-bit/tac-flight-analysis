@@ -23,9 +23,10 @@ AT - Vienna,ES - Barcelona,VIE-BCN,80000,-0.115,20000,-0.052,-0.132,6000,-0.057,
 CH - Zürich,ES - Barcelona,ZRH-BCN,70000,0.06,30000,0.174,0.099,7000,-0.018,0.13`;
 
 // --- HILFSFUNKTIONEN FÜR LÄNDER & FLAGGEN ---
-const getFlagEmoji = (countryCode) => {
+// Ersetzt die Emojis durch echte kleine Flaggen-Bilder (umgeht das Windows-Emoji-Problem)
+const getFlagImgHtml = (countryCode) => {
   if (!countryCode || countryCode.length !== 2) return '';
-  return countryCode.toUpperCase().replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+  return `<img src="https://flagcdn.com/w20/${countryCode.toLowerCase()}.png" style="width:16px; height:auto; display:inline-block; vertical-align:middle; border-radius:2px; margin-right:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);" alt="${countryCode}" />`;
 };
 
 const COUNTRY_NAMES = {
@@ -396,8 +397,10 @@ export default function App() {
             const googleFlightsUrl = `https://www.google.com/travel/flights?q=Flights%20from%20${encodeURIComponent(d.originCity)}%20to%20${encodeURIComponent(d.destCity)}`;
 
             return `
-              <div style="font-weight:600; margin-bottom: 8px; font-size: 14px;">
-                ${getFlagEmoji(d.originCountry)} ${d.originCity} ➔ ${getFlagEmoji(d.destCountry)} ${d.destCity}
+              <div style="font-weight:600; margin-bottom: 8px; font-size: 14px; display: flex; align-items: center;">
+                ${getFlagImgHtml(d.originCountry)}<span style="vertical-align:middle;">${d.originCity}</span> 
+                <span style="margin: 0 6px;">➔</span> 
+                ${getFlagImgHtml(d.destCountry)}<span style="vertical-align:middle;">${d.destCity}</span>
               </div>
               <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                 <span style="color:#94a3b8; margin-right: 12px;">Suchvolumen (Ad Opp.):</span> 
@@ -549,13 +552,13 @@ export default function App() {
                       key={country}
                       onClick={() => toggleCountry(country)}
                       title={COUNTRY_NAMES[country] || country}
-                      className={`w-full text-center py-1.5 rounded text-lg transition-colors border ${
+                      className={`w-full flex justify-center items-center py-1.5 rounded transition-colors border ${
                         isActive 
                           ? 'bg-blue-600/20 border-blue-500 opacity-100' 
                           : 'bg-slate-800 border-slate-700 hover:bg-slate-700 opacity-50 grayscale'
                       }`}
                     >
-                      {getFlagEmoji(country)}
+                      <img src={`https://flagcdn.com/w40/${country.toLowerCase()}.png`} alt={country} className="w-6 rounded-sm shadow-sm" />
                     </button>
                   );
                 })}
@@ -598,9 +601,8 @@ export default function App() {
                             <button
                               key={`dest-${country}`}
                               onClick={() => isValid && toggleDestCountry(country)}
-                              disabled={!isValid}
-                              title={!isValid ? 'Keine Route für gewählte Abflugländer' : (COUNTRY_NAMES[country] || country)}
-                              className={`w-full text-center py-1.5 rounded text-lg transition-colors border ${
+                              title={!isValid ? `${COUNTRY_NAMES[country] || country} (Keine Routen)` : (COUNTRY_NAMES[country] || country)}
+                              className={`w-full flex justify-center items-center py-1.5 rounded transition-colors border ${
                                 !isValid
                                   ? 'opacity-10 cursor-not-allowed bg-slate-900 border-slate-800 grayscale' 
                                   : isActive 
@@ -608,7 +610,7 @@ export default function App() {
                                     : 'bg-slate-800 border-slate-700 hover:bg-slate-700 opacity-50 grayscale'
                               }`}
                             >
-                              {getFlagEmoji(country)}
+                              <img src={`https://flagcdn.com/w40/${country.toLowerCase()}.png`} alt={country} className="w-6 rounded-sm shadow-sm" />
                             </button>
                           );
                         })}
@@ -737,7 +739,7 @@ export default function App() {
               <div className="flex h-3 w-full rounded-full overflow-hidden">
                 <div className="bg-[#dc2626] flex-1"></div>
                 <div className="bg-[#fca5a5] flex-1"></div>
-                <div className="bg-[#94a3b8] flex-[0.5]"></div>
+                <div className="bg-[#94a3b8] flex-1"></div>
                 <div className="bg-[#6ee7b7] flex-1"></div>
                 <div className="bg-[#10b981] flex-1"></div>
               </div>
@@ -782,6 +784,16 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Entfernt die Pfeile (Spinners) bei num-Inputs */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
+        }
       `}} />
     </div>
   );
