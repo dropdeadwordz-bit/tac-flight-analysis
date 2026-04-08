@@ -515,7 +515,7 @@ export default function App() {
         <div className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <MapIcon className="text-blue-400 w-8 h-8 shrink-0" />
-            <h1 className="text-xl font-bold text-white leading-tight">Google Flights<br/><span className="text-sm font-normal text-slate-400">Route Trends</span></h1>
+            <h1 className="text-xl font-bold text-white leading-tight">Google Flights<br/><span className="text-sm font-normal text-slate-400">Route Trends v2.0</span></h1>
           </div>
           
           {/* Datei Upload */}
