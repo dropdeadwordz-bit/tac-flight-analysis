@@ -22,11 +22,16 @@ DE - Frankfurt,TH - Bangkok,FRA-BKK,200000,0.197,50000,-0.12,0.325,10000,-0.096,
 AT - Vienna,ES - Barcelona,VIE-BCN,80000,-0.115,20000,-0.052,-0.132,6000,-0.057,-0.172
 CH - Zürich,ES - Barcelona,ZRH-BCN,70000,0.06,30000,0.174,0.099,7000,-0.018,0.13`;
 
-// --- ÜBERSETZUNGS-WÖRTERBUCH FÜR LÄNDERCODES (Hover-Tooltips) ---
+// --- HILFSFUNKTIONEN FÜR LÄNDER & FLAGGEN ---
+const getFlagEmoji = (countryCode) => {
+  if (!countryCode || countryCode.length !== 2) return '';
+  return countryCode.toUpperCase().replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+};
+
 const COUNTRY_NAMES = {
   "DE": "Deutschland", "AT": "Österreich", "CH": "Schweiz", "US": "USA", "GB": "Großbritannien",
   "FR": "Frankreich", "ES": "Spanien", "IT": "Italien", "NL": "Niederlande", "TR": "Türkei",
-  "AE": "Vereinigte Arabische Emirate", "TH": "Thailand", "SG": "Singapur", "CZ": "Tschechien",
+  "AE": "Ver. Arab. Emirate", "TH": "Thailand", "SG": "Singapur", "CZ": "Tschechien",
   "PR": "Puerto Rico", "BB": "Barbados", "BE": "Belgien", "HU": "Ungarn", "IL": "Israel",
   "CA": "Kanada", "BG": "Bulgarien", "IE": "Irland", "MX": "Mexiko", "VE": "Venezuela",
   "MA": "Marokko", "IN": "Indien", "DZ": "Algerien", "MG": "Madagaskar", "AW": "Aruba",
@@ -47,6 +52,16 @@ const COUNTRY_NAMES = {
   "EE": "Estland", "LV": "Lettland", "LT": "Litauen", "SK": "Slowakei", "SI": "Slowenien",
   "LU": "Luxemburg", "LI": "Liechtenstein", "MC": "Monaco", "SM": "San Marino", "VA": "Vatikanstadt",
   "AD": "Andorra", "TZ": "Tansania", "CV": "Kap Verde", "PF": "Franz.-Polynesien"
+};
+
+const COUNTRY_TO_CONTINENT = {
+  "DE": "Europa", "AT": "Europa", "CH": "Europa", "GB": "Europa", "FR": "Europa", "ES": "Europa", "IT": "Europa", "NL": "Europa", "CZ": "Europa", "BE": "Europa", "HU": "Europa", "BG": "Europa", "IE": "Europa", "GR": "Europa", "CY": "Europa", "MT": "Europa", "HR": "Europa", "IS": "Europa", "NO": "Europa", "SE": "Europa", "DK": "Europa", "FI": "Europa", "PL": "Europa", "RO": "Europa", "PT": "Europa", "AL": "Europa", "ME": "Europa", "RS": "Europa", "BA": "Europa", "MK": "Europa", "XK": "Europa", "MD": "Europa", "BY": "Europa", "UA": "Europa", "EE": "Europa", "LV": "Europa", "LT": "Europa", "SK": "Europa", "SI": "Europa", "LU": "Europa", "LI": "Europa", "MC": "Europa", "SM": "Europa", "VA": "Europa", "AD": "Europa",
+  "US": "Nord- & Mittelamerika", "CA": "Nord- & Mittelamerika", "MX": "Nord- & Mittelamerika", "PR": "Nord- & Mittelamerika", "BB": "Nord- & Mittelamerika", "AW": "Nord- & Mittelamerika", "DO": "Nord- & Mittelamerika", "JM": "Nord- & Mittelamerika", "BS": "Nord- & Mittelamerika", "CU": "Nord- & Mittelamerika", "CR": "Nord- & Mittelamerika", "SV": "Nord- & Mittelamerika", "GT": "Nord- & Mittelamerika", "HN": "Nord- & Mittelamerika", "NI": "Nord- & Mittelamerika", "PA": "Nord- & Mittelamerika",
+  "CO": "Südamerika", "VE": "Südamerika", "BR": "Südamerika", "AR": "Südamerika", "PE": "Südamerika", "CL": "Südamerika", "UY": "Südamerika", "BO": "Südamerika", "PY": "Südamerika", "EC": "Südamerika", "GY": "Südamerika", "SR": "Südamerika", "GF": "Südamerika",
+  "TH": "Asien", "SG": "Asien", "IN": "Asien", "JP": "Asien", "KR": "Asien", "TW": "Asien", "PH": "Asien", "MY": "Asien", "ID": "Asien", "VN": "Asien", "CN": "Asien", "RU": "Asien", "PK": "Asien", "LK": "Asien", "MV": "Asien",
+  "TR": "Naher Osten", "AE": "Naher Osten", "IL": "Naher Osten", "QA": "Naher Osten", "SA": "Naher Osten",
+  "MA": "Afrika", "DZ": "Afrika", "MG": "Afrika", "EG": "Afrika", "ZA": "Afrika", "KE": "Afrika", "NG": "Afrika", "MU": "Afrika", "SC": "Afrika", "CI": "Afrika", "GH": "Afrika", "SN": "Afrika", "TN": "Afrika", "TZ": "Afrika", "CV": "Afrika",
+  "AU": "Ozeanien", "NZ": "Ozeanien", "PF": "Ozeanien"
 };
 
 // --- GEO-KOORDINATEN WÖRTERBUCH ---
@@ -145,7 +160,7 @@ export default function App() {
   
   const [timeframe, setTimeframe] = useState('84d'); 
   const [trendType, setTrendType] = useState('yoy'); 
-  const [minAdOppFilter, setMinAdOppFilter] = useState(0); 
+  const [minAdOppFilter, setMinAdOppFilter] = useState(''); // Text-State, damit Backspace klappt (ohne führende Null)
   const [echartsReady, setEchartsReady] = useState(false);
   const [isDestExpanded, setIsDestExpanded] = useState(false);
   
@@ -191,12 +206,13 @@ export default function App() {
     return parsedData;
   };
 
+  // Deutlichere Farbabstufungen für stärkere Kontraste
   const getTrendColor = (trend) => {
-    if (trend <= -0.15) return '#ef4444'; 
-    if (trend < 0) return '#f87171';      
-    if (trend === 0) return '#94a3b8';    
-    if (trend <= 0.15) return '#34d399';  
-    return '#10b981';                     
+    if (trend <= -0.20) return '#dc2626'; // Starkes Rot (Abnahme > 20%)
+    if (trend < 0) return '#fca5a5';      // Helles Rot
+    if (trend === 0) return '#94a3b8';    // Neutral Grau
+    if (trend <= 0.20) return '#6ee7b7';  // Helles Grün
+    return '#10b981';                     // Starkes Grün (Zuwachs > 20%)
   };
 
   // Init ECharts & Data
@@ -274,6 +290,17 @@ export default function App() {
     return Array.from(valid);
   }, [data, activeCountries]);
 
+  // Zielländer für die Darstellung nach Kontinenten gruppieren
+  const destByContinent = useMemo(() => {
+    const groups = {};
+    availableDestCountries.forEach(country => {
+      const cont = COUNTRY_TO_CONTINENT[country] || 'Sonstige';
+      if (!groups[cont]) groups[cont] = [];
+      groups[cont].push(country);
+    });
+    return groups;
+  }, [availableDestCountries]);
+
   const maxPossibleAdOpp = useMemo(() => {
     if (data.length === 0) return 100000;
     let max = 0;
@@ -285,8 +312,9 @@ export default function App() {
   }, [data, timeframe]);
 
   useEffect(() => {
-    if (minAdOppFilter > maxPossibleAdOpp) {
-      setMinAdOppFilter(0);
+    const currentMin = Number(minAdOppFilter) || 0;
+    if (currentMin > maxPossibleAdOpp) {
+      setMinAdOppFilter('');
     }
     if (timeframe === '84d' && trendType !== 'yoy') {
       setTrendType('yoy');
@@ -309,6 +337,9 @@ export default function App() {
 
     let minAd = Infinity;
     let maxAd = -Infinity;
+    
+    // Filter-Wert als Zahl
+    const activeMinAdOpp = Number(minAdOppFilter) || 0;
 
     const currentData = activeDataRaw.map(row => {
       let adOpp, trend, trendLabel;
@@ -326,7 +357,7 @@ export default function App() {
 
       return { ...row, currentAdOpp: adOpp, currentTrend: trend, trendLabel };
     })
-    .filter(row => row.currentAdOpp > 0 && row.currentAdOpp >= minAdOppFilter); 
+    .filter(row => row.currentAdOpp > 0 && row.currentAdOpp >= activeMinAdOpp); 
 
     if (minAd === maxAd) minAd = 0;
 
@@ -351,6 +382,7 @@ export default function App() {
       tooltip: {
         trigger: 'item',
         enterable: true,
+        hideDelay: 1000, // Verhindert das sofortige Verschwinden, damit man zum Link navigieren kann
         backgroundColor: '#1e293b',
         borderColor: '#334155',
         textStyle: { color: '#f8fafc' },
@@ -358,15 +390,14 @@ export default function App() {
           if (params.seriesType === 'lines') {
             const d = params.data.details;
             const trendPercent = (d.currentTrend * 100).toFixed(1);
-            const trendColor = d.currentTrend >= 0 ? '#34d399' : '#f87171';
+            const trendColor = getTrendColor(d.currentTrend);
             const sign = d.currentTrend > 0 ? '+' : '';
             
-            // Korrigierter, offizieller Google Flights URL-Parameter
             const googleFlightsUrl = `https://www.google.com/travel/flights?q=Flights%20from%20${encodeURIComponent(d.originCity)}%20to%20${encodeURIComponent(d.destCity)}`;
 
             return `
               <div style="font-weight:600; margin-bottom: 8px; font-size: 14px;">
-                ${d.originCity} ➔ ${d.destCity}
+                ${getFlagEmoji(d.originCountry)} ${d.originCity} ➔ ${getFlagEmoji(d.destCountry)} ${d.destCity}
               </div>
               <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                 <span style="color:#94a3b8; margin-right: 12px;">Suchvolumen (Ad Opp.):</span> 
@@ -384,7 +415,7 @@ export default function App() {
                 </a>
               </div>
               <div style="font-size: 9px; color: #64748b; margin-top: 8px; text-align: center;">
-                Tipp: Klicke auf die Route, um sie auf der Karte auszublenden.
+                Tipp: Klicke auf die Route, um sie auszublenden.
               </div>
             `;
           }
@@ -415,7 +446,8 @@ export default function App() {
       ]
     };
 
-    chartInstance.current.setOption(option, true); 
+    // WICHTIG: replaceMerge statt 'true' verhindert, dass der Zoom-State beim Entfernen einer Route zurückgesetzt wird!
+    chartInstance.current.setOption(option, { replaceMerge: ['series'] }); 
 
     chartInstance.current.off('click'); 
     chartInstance.current.on('click', function(params) {
@@ -448,10 +480,27 @@ export default function App() {
     );
   };
 
-  const setManualMinAdOpp = (value) => {
-    const numericValue = Number(value);
-    if (!isNaN(numericValue) && numericValue >= 0) {
-      setMinAdOppFilter(numericValue);
+  const setContinentAll = (countriesInContinent) => {
+    setActiveDestCountries(prev => {
+      const newSet = new Set(prev);
+      countriesInContinent.forEach(c => newSet.add(c));
+      return Array.from(newSet);
+    });
+  };
+
+  const setContinentNone = (countriesInContinent) => {
+    setActiveDestCountries(prev => prev.filter(c => !countriesInContinent.includes(c)));
+  };
+
+  const handleManualMinAdOppChange = (e) => {
+    const val = e.target.value;
+    if (val === '') {
+      setMinAdOppFilter(''); // Keine führende Null bei leerem Feld
+    } else {
+      const numericValue = parseInt(val, 10);
+      if (!isNaN(numericValue) && numericValue >= 0) {
+        setMinAdOppFilter(numericValue.toString());
+      }
     }
   };
 
@@ -500,13 +549,13 @@ export default function App() {
                       key={country}
                       onClick={() => toggleCountry(country)}
                       title={COUNTRY_NAMES[country] || country}
-                      className={`w-full text-center py-1.5 rounded text-xs font-medium transition-colors border truncate ${
+                      className={`w-full text-center py-1.5 rounded text-lg transition-colors border ${
                         isActive 
-                          ? 'bg-blue-600 text-white border-blue-500' 
-                          : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                          ? 'bg-blue-600/20 border-blue-500 opacity-100' 
+                          : 'bg-slate-800 border-slate-700 hover:bg-slate-700 opacity-50 grayscale'
                       }`}
                     >
-                      {country}
+                      {getFlagEmoji(country)}
                     </button>
                   );
                 })}
@@ -514,7 +563,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Zielland Filter (Einklappbar) */}
+          {/* Zielland Filter (Nach Kontinenten gruppiert & Einklappbar) */}
           {availableDestCountries.length > 0 && (
             <div className="mb-6 bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
               <div 
@@ -529,35 +578,43 @@ export default function App() {
               
               {isDestExpanded && (
                 <div className="p-3 pt-0 border-t border-slate-700/50 mt-1">
-                  <div className="flex justify-end gap-2 mb-3">
-                    <button onClick={() => setActiveDestCountries([...availableDestCountries])} className="text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors">Alle</button>
-                    <span className="text-[10px] text-slate-500">|</span>
-                    <button onClick={() => setActiveDestCountries([])} className="text-[10px] text-slate-400 hover:text-slate-300 transition-colors">Keines</button>
-                  </div>
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {availableDestCountries.map(country => {
-                      const isActive = activeDestCountries.includes(country);
-                      const isValid = validDestCountries.includes(country); 
+                  {Object.keys(destByContinent).sort().map(continent => (
+                    <div key={continent} className="mb-4 last:mb-0">
+                      <div className="flex justify-between items-end mb-2">
+                        <span className="text-xs font-semibold text-slate-300">{continent}</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => setContinentAll(destByContinent[continent])} className="text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors">Alle</button>
+                          <span className="text-[10px] text-slate-500">|</span>
+                          <button onClick={() => setContinentNone(destByContinent[continent])} className="text-[10px] text-slate-400 hover:text-slate-300 transition-colors">Keines</button>
+                        </div>
+                      </div>
                       
-                      return (
-                        <button
-                          key={`dest-${country}`}
-                          onClick={() => isValid && toggleDestCountry(country)}
-                          disabled={!isValid}
-                          title={!isValid ? 'Keine Route für gewählte Abflugländer' : (COUNTRY_NAMES[country] || country)}
-                          className={`w-full text-center py-1.5 rounded text-xs font-medium transition-colors border truncate ${
-                            !isValid
-                              ? 'opacity-30 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-500' 
-                              : isActive 
-                                ? 'bg-emerald-600 text-white border-emerald-500' 
-                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-                          }`}
-                        >
-                          {country}
-                        </button>
-                      );
-                    })}
-                  </div>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {destByContinent[continent].map(country => {
+                          const isActive = activeDestCountries.includes(country);
+                          const isValid = validDestCountries.includes(country); 
+                          
+                          return (
+                            <button
+                              key={`dest-${country}`}
+                              onClick={() => isValid && toggleDestCountry(country)}
+                              disabled={!isValid}
+                              title={!isValid ? 'Keine Route für gewählte Abflugländer' : (COUNTRY_NAMES[country] || country)}
+                              className={`w-full text-center py-1.5 rounded text-lg transition-colors border ${
+                                !isValid
+                                  ? 'opacity-10 cursor-not-allowed bg-slate-900 border-slate-800 grayscale' 
+                                  : isActive 
+                                    ? 'bg-emerald-600/20 border-emerald-500 opacity-100' 
+                                    : 'bg-slate-800 border-slate-700 hover:bg-slate-700 opacity-50 grayscale'
+                              }`}
+                            >
+                              {getFlagEmoji(country)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -574,7 +631,7 @@ export default function App() {
                 type="number" 
                 min="0" 
                 value={minAdOppFilter} 
-                onChange={(e) => setManualMinAdOpp(e.target.value)}
+                onChange={handleManualMinAdOppChange}
                 className="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Exakter Wert..."
               />
@@ -586,8 +643,8 @@ export default function App() {
                 min="0" 
                 max={maxPossibleAdOpp} 
                 step="5000" 
-                value={minAdOppFilter} 
-                onChange={(e) => setMinAdOppFilter(Number(e.target.value))}
+                value={minAdOppFilter === '' ? 0 : minAdOppFilter} 
+                onChange={(e) => setMinAdOppFilter(e.target.value)}
                 className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
               <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
@@ -678,11 +735,11 @@ export default function App() {
             <div className="mb-4">
               <p className="text-xs text-slate-300 mb-2">Trend (Farbe)</p>
               <div className="flex h-3 w-full rounded-full overflow-hidden">
-                <div className="bg-red-500 flex-1"></div>
-                <div className="bg-red-400 flex-1"></div>
-                <div className="bg-slate-400 flex-[0.5]"></div>
-                <div className="bg-emerald-400 flex-1"></div>
-                <div className="bg-emerald-500 flex-1"></div>
+                <div className="bg-[#dc2626] flex-1"></div>
+                <div className="bg-[#fca5a5] flex-1"></div>
+                <div className="bg-[#94a3b8] flex-[0.5]"></div>
+                <div className="bg-[#6ee7b7] flex-1"></div>
+                <div className="bg-[#10b981] flex-1"></div>
               </div>
               <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                 <span>Negativ</span>
